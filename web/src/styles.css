@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-zinc-950 text-zinc-100 antialiased;
+}
+
+/* CodeMirror */
+.cm-editor {
+  height: 100%;
+  font-size: 15px;
+  background: transparent;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-scroller {
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, monospace;
+  line-height: 1.6;
+}
+.cm-gutters {
+  background: transparent !important;
+  border-right: none !important;
+  color: #52525b !important;
+}
+.cm-activeLine,
+.cm-activeLineGutter {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+.cm-content {
+  caret-color: #fbbf24;
+  padding-bottom: 40vh;
+}
+.cm-cursor {
+  border-left-color: #fbbf24 !important;
+}
+.cm-selectionBackground {
+  background: rgba(251, 191, 36, 0.15) !important;
+}
+
+/* Snippets de búsqueda */
+mark {
+  @apply rounded-xs bg-amber-400/30 px-0.5 text-amber-200;
+}

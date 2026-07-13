@@ -6,12 +6,19 @@ import { markdown } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { oneDark } from '@codemirror/theme-one-dark'
 
+export interface EditorApi {
+  /** Inserta texto en la posición actual del cursor. */
+  insert: (text: string) => void
+}
+
 interface Props {
   value: string
   onChange: (value: string) => void
   onSave?: () => void
   /** Sube una imagen pegada/arrastrada y devuelve el markdown a insertar (o null si falla). */
   onPasteImage?: (file: File) => Promise<string | null>
+  /** Recibe la API imperativa del editor (para insertar desde botones externos). */
+  apiRef?: React.MutableRefObject<EditorApi | null>
   placeholder?: string
 }
 
@@ -21,7 +28,7 @@ function imageFiles(list: DataTransfer | null): File[] {
 }
 
 /** Editor CodeMirror no controlado: solo se resetea desde fuera cuando cambia `docKey`. */
-export default function Editor({ value, onChange, onSave, onPasteImage, placeholder, docKey }: Props & { docKey: string }) {
+export default function Editor({ value, onChange, onSave, onPasteImage, apiRef, placeholder, docKey }: Props & { docKey: string }) {
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const callbacks = useRef({ onChange, onSave, onPasteImage })
@@ -87,9 +94,19 @@ export default function Editor({ value, onChange, onSave, onPasteImage, placehol
     })
     const view = new EditorView({ state, parent: host.current })
     viewRef.current = view
+    if (apiRef) {
+      apiRef.current = {
+        insert: (text) => {
+          const pos = view.state.selection.main.head
+          view.dispatch({ changes: { from: pos, insert: text }, selection: { anchor: pos + text.length } })
+          view.focus()
+        },
+      }
+    }
     return () => {
       view.destroy()
       viewRef.current = null
+      if (apiRef) apiRef.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docKey])

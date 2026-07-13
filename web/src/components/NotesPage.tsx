@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { api, imageMarkdown, type TreeNode } from '../api'
-import Editor from './Editor'
+import Editor, { type EditorApi } from './Editor'
 import MarkdownPreview from './MarkdownPreview'
 import FileTree from './FileTree'
 
@@ -19,7 +19,10 @@ export default function NotesPage() {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showTree, setShowTree] = useState(!notePath)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const editorApi = useRef<EditorApi | null>(null)
+  const imageInput = useRef<HTMLInputElement>(null)
 
   const refreshTree = useCallback(() => {
     api.tree().then(setTree).catch(() => {})
@@ -72,6 +75,19 @@ export default function NotesPage() {
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error subiendo la imagen')
       return null
+    }
+  }
+
+  const uploadFromPicker = async (files: File[]) => {
+    if (files.length === 0) return
+    setUploadingImage(true)
+    try {
+      for (const f of files) {
+        const md = await onPasteImage(f)
+        if (md) editorApi.current?.insert(md)
+      }
+    } finally {
+      setUploadingImage(false)
     }
   }
 
@@ -162,6 +178,29 @@ export default function NotesPage() {
                   </button>
                 ))}
               </div>
+              {mode === 'edit' && (
+                <>
+                  <button
+                    onClick={() => imageInput.current?.click()}
+                    disabled={uploadingImage}
+                    className="px-1.5 text-sm text-zinc-500 hover:text-zinc-300 disabled:opacity-50"
+                    title="Insertar imagen (también puedes pegarla o arrastrarla)"
+                  >
+                    {uploadingImage ? '⏳' : '📷'}
+                  </button>
+                  <input
+                    ref={imageInput}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      uploadFromPicker([...(e.target.files ?? [])])
+                      e.target.value = ''
+                    }}
+                  />
+                </>
+              )}
               <button onClick={renameNote} className="px-1.5 text-sm text-zinc-500 hover:text-zinc-300" title="Renombrar">
                 ✏️
               </button>
@@ -171,7 +210,14 @@ export default function NotesPage() {
             </header>
             <div className="min-h-0 flex-1">
               {mode === 'edit' ? (
-                <Editor docKey={loaded} value={content} onChange={onChange} onSave={save} onPasteImage={onPasteImage} />
+                <Editor
+                  docKey={loaded}
+                  value={content}
+                  onChange={onChange}
+                  onSave={save}
+                  onPasteImage={onPasteImage}
+                  apiRef={editorApi}
+                />
               ) : (
                 <MarkdownPreview content={content} />
               )}

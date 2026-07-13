@@ -163,7 +163,7 @@ export default function NotesPage() {
               </button>
               <span className="min-w-0 flex-1 truncate text-sm text-zinc-400">{loaded}</span>
               <span className="text-xs text-zinc-600">
-                {saving ? 'Guardando…' : dirty ? '● sin guardar' : 'Guardado'}
+                {uploadingImage ? '📤 Subiendo imagen…' : saving ? 'Guardando…' : dirty ? '● sin guardar' : 'Guardado'}
               </span>
               <div className="flex rounded-lg bg-zinc-900 p-0.5 text-xs">
                 {(['edit', 'preview'] as Mode[]).map((m) => (
@@ -217,6 +217,7 @@ export default function NotesPage() {
                   onSave={save}
                   onPasteImage={onPasteImage}
                   apiRef={editorApi}
+                  onUploadingChange={setUploadingImage}
                 />
               ) : (
                 <MarkdownPreview content={content} />

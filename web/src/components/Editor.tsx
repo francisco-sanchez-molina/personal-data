@@ -19,6 +19,8 @@ interface Props {
   onPasteImage?: (file: File) => Promise<string | null>
   /** Recibe la API imperativa del editor (para insertar desde botones externos). */
   apiRef?: React.MutableRefObject<EditorApi | null>
+  /** Se llama con `true` mientras haya alguna imagen pegada/arrastrada subiéndose. */
+  onUploadingChange?: (uploading: boolean) => void
   placeholder?: string
 }
 
@@ -28,25 +30,55 @@ function imageFiles(list: DataTransfer | null): File[] {
 }
 
 /** Editor CodeMirror no controlado: solo se resetea desde fuera cuando cambia `docKey`. */
-export default function Editor({ value, onChange, onSave, onPasteImage, apiRef, placeholder, docKey }: Props & { docKey: string }) {
+export default function Editor({
+  value,
+  onChange,
+  onSave,
+  onPasteImage,
+  apiRef,
+  onUploadingChange,
+  placeholder,
+  docKey,
+}: Props & { docKey: string }) {
   const host = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
-  const callbacks = useRef({ onChange, onSave, onPasteImage })
-  callbacks.current = { onChange, onSave, onPasteImage }
+  const callbacks = useRef({ onChange, onSave, onPasteImage, onUploadingChange })
+  callbacks.current = { onChange, onSave, onPasteImage, onUploadingChange }
 
   useEffect(() => {
     if (!host.current) return
 
+    const pendingCount = { current: 0 }
+    const reportUploading = (delta: number) => {
+      pendingCount.current = Math.max(0, pendingCount.current + delta)
+      callbacks.current.onUploadingChange?.(pendingCount.current > 0)
+    }
+
+    // Inserta un placeholder al pegar/soltar y lo sustituye por el markdown final (o un aviso de error)
+    // cuando la subida termina, para que la espera no se sienta como "no ha pasado nada".
     const insertImages = async (view: EditorView, files: File[], at?: number) => {
       const upload = callbacks.current.onPasteImage
       if (!upload) return
       for (const file of files) {
-        const md = await upload(file)
-        if (!md) continue
+        const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
+        const placeholderText = `⏳ Subiendo ${file.name || 'imagen'}… [${token}]`
         const pos = at ?? view.state.selection.main.head
-        view.dispatch({ changes: { from: pos, insert: md }, selection: { anchor: pos + md.length } })
+        view.dispatch({
+          changes: { from: pos, insert: placeholderText },
+          selection: { anchor: pos + placeholderText.length },
+        })
         at = undefined // las siguientes van tras el cursor ya movido
+
+        reportUploading(1)
+        const md = await upload(file).finally(() => reportUploading(-1))
+
+        const text = view.state.doc.toString()
+        const idx = text.indexOf(placeholderText)
+        if (idx === -1) continue // el usuario borró el placeholder mientras subía
+        const replacement = md ?? `⚠️ No se pudo subir ${file.name || 'la imagen'}\n`
+        view.dispatch({ changes: { from: idx, to: idx + placeholderText.length, insert: replacement } })
       }
+      callbacks.current.onSave?.()
     }
 
     const state = EditorState.create({

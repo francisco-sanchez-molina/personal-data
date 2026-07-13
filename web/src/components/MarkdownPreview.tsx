@@ -4,9 +4,28 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { api } from '../api'
 
+function escapeAttr(s: string): string {
+  return s.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+}
+
 marked.use({
   gfm: true,
   breaks: true,
+  renderer: {
+    // Ancho estilo Obsidian: ![alt|400](url) o ![alt|400x300](url) se muestra a ese tamaño
+    // (el fichero original sigue accesible pulsando la imagen, que abre a tamaño completo).
+    image({ href, title, text }) {
+      const m = /^(.*)\|(\d+)(?:x(\d+))?$/.exec(text ?? '')
+      const alt = escapeAttr(m ? m[1] : (text ?? ''))
+      const width = m?.[2] ?? null
+      const height = m?.[3] ?? null
+      const src = escapeAttr(href ?? '')
+      const dims = width ? ` width="${width}"${height ? ` height="${height}"` : ''}` : ''
+      const titleAttr = title ? ` title="${escapeAttr(title)}"` : ''
+      const img = `<img src="${src}" alt="${alt}"${dims}${titleAttr} loading="lazy" class="note-image" />`
+      return width ? `<a href="${src}" target="_blank" rel="noopener" class="note-image-link">${img}</a>` : img
+    },
+  },
   extensions: [
     {
       name: 'wikilink',
@@ -56,7 +75,7 @@ export default function MarkdownPreview({ content }: { content: string }) {
 
   const html = useMemo(() => {
     const raw = marked.parse(content, { async: false })
-    return DOMPurify.sanitize(raw, { ADD_ATTR: ['data-wiki', 'data-tag'] })
+    return DOMPurify.sanitize(raw, { ADD_ATTR: ['data-wiki', 'data-tag', 'target'] })
   }, [content])
 
   const onClick = async (e: React.MouseEvent) => {
@@ -88,7 +107,7 @@ export default function MarkdownPreview({ content }: { content: string }) {
   return (
     <div
       onClick={onClick}
-      className="prose prose-invert prose-zinc h-full max-w-none overflow-auto p-4 prose-headings:font-semibold prose-a:text-amber-300 prose-img:rounded-lg [&_.wikilink]:cursor-pointer [&_.wikilink]:underline [&_.wikilink]:decoration-dotted [&_.tag-chip]:cursor-pointer [&_.tag-chip]:rounded-full [&_.tag-chip]:bg-zinc-800 [&_.tag-chip]:px-2 [&_.tag-chip]:py-0.5 [&_.tag-chip]:text-xs [&_.tag-chip]:font-medium [&_.tag-chip]:text-amber-200 [&_.tag-chip]:no-underline"
+      className="prose prose-invert prose-zinc h-full max-w-none overflow-auto p-4 prose-headings:font-semibold prose-a:text-amber-300 prose-img:rounded-lg [&_.wikilink]:cursor-pointer [&_.wikilink]:underline [&_.wikilink]:decoration-dotted [&_.tag-chip]:cursor-pointer [&_.tag-chip]:rounded-full [&_.tag-chip]:bg-zinc-800 [&_.tag-chip]:px-2 [&_.tag-chip]:py-0.5 [&_.tag-chip]:text-xs [&_.tag-chip]:font-medium [&_.tag-chip]:text-amber-200 [&_.tag-chip]:no-underline [&_.note-image]:max-w-full [&_.note-image]:h-auto [&_.note-image-link]:inline-block [&_.note-image-link]:cursor-zoom-in"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )

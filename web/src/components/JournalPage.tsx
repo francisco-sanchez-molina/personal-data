@@ -6,7 +6,6 @@ import {
   imageMarkdown,
   shiftDate,
   thumbUrl,
-  fileUrl,
   todayStr,
   type Attachment,
   type Memory,
@@ -90,8 +89,7 @@ export default function JournalPage() {
   }
 
   const insertInNote = (a: Attachment) => {
-    const md = `\n![${a.original_name ?? ''}](${fileUrl(a)})\n`
-    onChange(contentRef.current.replace(/\n*$/, '\n') + md)
+    onChange(contentRef.current.replace(/\n*$/, '\n') + '\n' + imageMarkdown(a))
   }
 
   /** Imagen pegada en el editor del diario: se sube como foto del día y se inserta inline. */
@@ -148,8 +146,8 @@ export default function JournalPage() {
               Hoy
             </button>
           )}
-          <span className="hidden text-xs text-zinc-600 sm:block">
-            {saving ? 'Guardando…' : dirty ? '●' : ''}
+          <span className={`text-xs text-zinc-600 ${uploading ? '' : 'hidden sm:block'}`}>
+            {uploading ? '📤 Subiendo imagen…' : saving ? 'Guardando…' : dirty ? '●' : ''}
           </span>
           <div className="flex rounded-lg bg-zinc-900 p-0.5 text-xs">
             {(['edit', 'preview'] as const).map((m) => (
@@ -194,6 +192,7 @@ export default function JournalPage() {
                 onChange={onChange}
                 onSave={save}
                 onPasteImage={onPasteImage}
+                onUploadingChange={setUploading}
                 placeholder={`¿Qué tal el ${formatDateEs(date)}?`}
               />
             ) : (

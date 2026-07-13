@@ -169,10 +169,18 @@ export function fileUrl(a: Attachment): string {
   return `/api/files/${a.date}/${a.filename}`
 }
 
-/** Markdown de imagen para insertar en el editor tras subirla. */
-export function imageMarkdown(a: Attachment): string {
-  const alt = (a.original_name ?? '').replace(/\.[a-z0-9]+$/i, '').replace(/[[\]]/g, '')
-  return `![${alt}](${fileUrl(a)})\n`
+/** Ancho por defecto (en px) de las imágenes insertadas en el editor. */
+export const DEFAULT_IMAGE_WIDTH = 400
+
+/**
+ * Markdown de imagen para insertar en el editor tras subirla, con ancho de
+ * visualización estilo Obsidian (`![alt|400](url)`) para que no ocupe toda la nota.
+ * El fichero original (hasta 2560px) sigue accesible pulsando la imagen.
+ */
+export function imageMarkdown(a: Attachment, width: number | null = DEFAULT_IMAGE_WIDTH): string {
+  const alt = (a.original_name ?? '').replace(/\.[a-z0-9]+$/i, '').replace(/[[\]|]/g, '')
+  const size = width ? `|${width}` : ''
+  return `![${alt}${size}](${fileUrl(a)})\n`
 }
 
 export function thumbUrl(a: Attachment): string {

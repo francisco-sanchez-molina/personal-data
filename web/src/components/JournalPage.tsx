@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import {
   api,
   formatDateEs,
+  imageMarkdown,
   shiftDate,
   thumbUrl,
   fileUrl,
@@ -93,6 +94,18 @@ export default function JournalPage() {
     onChange(contentRef.current.replace(/\n*$/, '\n') + md)
   }
 
+  /** Imagen pegada en el editor del diario: se sube como foto del día y se inserta inline. */
+  const onPasteImage = async (file: File): Promise<string | null> => {
+    try {
+      const [saved] = await api.uploadAttachments(date, [file])
+      setAttachments((prev) => [...prev, saved])
+      return imageMarkdown(saved)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error subiendo la imagen')
+      return null
+    }
+  }
+
   const isToday = date === todayStr()
 
   return (
@@ -180,6 +193,7 @@ export default function JournalPage() {
                 value={content}
                 onChange={onChange}
                 onSave={save}
+                onPasteImage={onPasteImage}
                 placeholder={`¿Qué tal el ${formatDateEs(date)}?`}
               />
             ) : (

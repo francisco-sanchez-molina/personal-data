@@ -48,7 +48,9 @@ export function monthSummary(cfg: Config, db: DB, month: string): MonthDay[] {
     }
   }
   const rows = db
-    .prepare("SELECT date, COUNT(*) AS n FROM attachments WHERE date LIKE ? || '-%' GROUP BY date")
+    .prepare(
+      "SELECT date, COUNT(*) AS n FROM attachments WHERE date LIKE ? || '-%' AND context = 'journal' GROUP BY date"
+    )
     .all(month) as { date: string; n: number }[]
   for (const r of rows) {
     const d = days.get(r.date) ?? { date: r.date, hasNote: false, attachmentCount: 0 }
@@ -78,7 +80,9 @@ export function memoriesFor(cfg: Config, db: DB, date: string): Memory[] {
     }
   }
   const attachYears = db
-    .prepare("SELECT DISTINCT substr(date, 1, 4) AS y FROM attachments WHERE substr(date, 6) = ?")
+    .prepare(
+      "SELECT DISTINCT substr(date, 1, 4) AS y FROM attachments WHERE substr(date, 6) = ? AND context = 'journal'"
+    )
     .all(monthDay) as { y: string }[]
   for (const r of attachYears) years.add(Number(r.y))
 

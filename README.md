@@ -13,6 +13,7 @@
 - 🔐 **Login con contraseña única** (env var) + cookie firmada HMAC + rate-limit 5 intentos/min/IP
 - 📝 **Vault de ficheros `.md` reales** en disco: portable, backup = copiar carpeta, compatible con Obsidian/cualquier editor
 - ✍️ **Editor CodeMirror 6** con resaltado markdown, autosave (1,5 s) y `Cmd+S`, más vista renderizada (GFM)
+- 📋 **Pegar imágenes en el editor** (`Cmd+V` o arrastrar): se suben, se recomprimen y se inserta el `![](…)` en el cursor. En notas quedan marcadas aparte (no aparecen en la rejilla de fotos del diario ni en recuerdos); en el diario cuentan como foto del día
 - 🔗 **Wikilinks** `[[nota]]` en la vista: navegan a la nota, y ofrecen crearla si no existe
 - 🗂 **Colecciones genéricas**: categorías que defines tú (Recetas 🍲, Médico peque 🩺, Libros 📚…) con icono y plantilla opcional (`{{title}}`, `{{date}}`); por debajo son carpetas normales del vault, y quitar una colección nunca borra sus notas
 - 🗓 **Agenda con alarmas**: calendario mensual de eventos (con o sin hora) con **varios avisos por evento** — combina «a la hora», 10/30 min, 1 h, 1 día o 1 semana antes (por defecto, 10 min antes). Cada aviso se dispara por separado. La rejilla marca también los días con **diario** (punto verde) y **fotos** (punto azul), y al seleccionar un día se muestra la entrada del diario con sus fotos, enlazada. Las claves VAPID se generan solas en `data/vapid.json`; el planificador comprueba cada minuto y los avisos que pillan al servidor apagado se recuperan al arrancar (hasta 24 h)

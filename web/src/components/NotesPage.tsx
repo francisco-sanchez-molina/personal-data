@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { api, type TreeNode } from '../api'
+import { api, imageMarkdown, type TreeNode } from '../api'
 import Editor from './Editor'
 import MarkdownPreview from './MarkdownPreview'
 import FileTree from './FileTree'
@@ -63,6 +63,16 @@ export default function NotesPage() {
     setDirty(true)
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(save, 1500)
+  }
+
+  const onPasteImage = async (file: File): Promise<string | null> => {
+    try {
+      const [saved] = await api.uploadNoteImages([file])
+      return imageMarkdown(saved)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error subiendo la imagen')
+      return null
+    }
   }
 
   useEffect(() => () => clearTimeout(saveTimer.current), [])
@@ -161,7 +171,7 @@ export default function NotesPage() {
             </header>
             <div className="min-h-0 flex-1">
               {mode === 'edit' ? (
-                <Editor docKey={loaded} value={content} onChange={onChange} onSave={save} />
+                <Editor docKey={loaded} value={content} onChange={onChange} onSave={save} onPasteImage={onPasteImage} />
               ) : (
                 <MarkdownPreview content={content} />
               )}

@@ -165,6 +165,18 @@ export function createApp(cfg: Config, db: DB, push: PushContext = { publicKey: 
     return c.json(saved, 201)
   })
 
+  // Imágenes pegadas/arrastradas en el editor de notas (no salen en la rejilla del diario)
+  api.post('/attachments', async (c) => {
+    const body = await c.req.parseBody({ all: true })
+    const raw = body['files'] ?? body['file']
+    const files = (Array.isArray(raw) ? raw : [raw]).filter((f): f is File => f instanceof File)
+    if (files.length === 0) throw new VaultError('No se ha enviado ningún archivo')
+    const today = new Date().toISOString().slice(0, 10)
+    const saved = []
+    for (const f of files) saved.push(await saveAttachment(cfg, db, today, f, 'note'))
+    return c.json(saved, 201)
+  })
+
   api.delete('/attachments/:id', (c) => {
     deleteAttachment(cfg, db, Number(c.req.param('id')))
     return c.json({ ok: true })

@@ -30,6 +30,7 @@ export function openDb(dbPath: string): DB {
       size INTEGER NOT NULL,
       width INTEGER,
       height INTEGER,
+      context TEXT NOT NULL DEFAULT 'journal',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(date, filename)
     );
@@ -102,6 +103,14 @@ export function openDb(dbPath: string): DB {
       ins.run(e.id, offset, e.remind_at, e.notified_at)
     }
     db.pragma('user_version = 3')
+  }
+  // v4: adjuntos con contexto — 'journal' (fotos del día) o 'note' (imágenes pegadas en notas)
+  if (version < 4) {
+    const cols = (db.prepare('PRAGMA table_info(attachments)').all() as { name: string }[]).map((c) => c.name)
+    if (!cols.includes('context')) {
+      db.exec("ALTER TABLE attachments ADD COLUMN context TEXT NOT NULL DEFAULT 'journal'")
+    }
+    db.pragma('user_version = 4')
   }
 
   return db

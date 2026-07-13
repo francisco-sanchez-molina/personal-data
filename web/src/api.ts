@@ -134,6 +134,11 @@ export const api = {
     for (const f of files) fd.append('files', f)
     return req<Attachment[]>(`/api/journal/${date}/attachments`, { method: 'POST', body: fd })
   },
+  uploadNoteImages: (files: File[]) => {
+    const fd = new FormData()
+    for (const f of files) fd.append('files', f)
+    return req<Attachment[]>('/api/attachments', { method: 'POST', body: fd })
+  },
   deleteAttachment: (id: number) => req<{ ok: true }>(`/api/attachments/${id}`, { method: 'DELETE' }),
   collections: () => req<Collection[]>('/api/collections'),
   createCollection: (input: { name: string; icon?: string; folder?: string; template?: string }) =>
@@ -162,6 +167,12 @@ export const api = {
 
 export function fileUrl(a: Attachment): string {
   return `/api/files/${a.date}/${a.filename}`
+}
+
+/** Markdown de imagen para insertar en el editor tras subirla. */
+export function imageMarkdown(a: Attachment): string {
+  const alt = (a.original_name ?? '').replace(/\.[a-z0-9]+$/i, '').replace(/[[\]]/g, '')
+  return `![${alt}](${fileUrl(a)})\n`
 }
 
 export function thumbUrl(a: Attachment): string {

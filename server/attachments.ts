@@ -14,6 +14,7 @@ export interface AttachmentRow {
   size: number
   width: number | null
   height: number | null
+  context: 'journal' | 'note'
   created_at: string
 }
 
@@ -22,9 +23,10 @@ const MAX_UPLOAD = 50 * 1024 * 1024
 const MAX_DIM = 2560
 const KEEP_PNG_UNDER = 1.5 * 1024 * 1024 // capturas de pantalla pequeñas se quedan en PNG
 
+/** Fotos del diario de un día (excluye imágenes pegadas en notas). */
 export function attachmentsForDate(db: DB, date: string): AttachmentRow[] {
   return db
-    .prepare('SELECT * FROM attachments WHERE date = ? ORDER BY created_at, id')
+    .prepare("SELECT * FROM attachments WHERE date = ? AND context = 'journal' ORDER BY created_at, id")
     .all(date) as AttachmentRow[]
 }
 
@@ -44,7 +46,8 @@ export async function saveAttachment(
   cfg: Config,
   db: DB,
   date: string,
-  file: File
+  file: File,
+  context: 'journal' | 'note' = 'journal'
 ): Promise<AttachmentRow> {
   if (!ALLOWED.has(file.type)) {
     throw new VaultError(`Formato no soportado: ${file.type || 'desconocido'}. Usa JPEG, PNG, WebP o GIF.`, 415)
@@ -100,9 +103,9 @@ export async function saveAttachment(
 
   const info = db
     .prepare(
-      'INSERT INTO attachments (date, filename, original_name, mime, size, width, height) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO attachments (date, filename, original_name, mime, size, width, height, context) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     )
-    .run(date, filename, file.name || null, mime, output.length, width, height)
+    .run(date, filename, file.name || null, mime, output.length, width, height, context)
   return db.prepare('SELECT * FROM attachments WHERE id = ?').get(info.lastInsertRowid) as AttachmentRow
 }
 

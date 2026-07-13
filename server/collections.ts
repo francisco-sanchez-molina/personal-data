@@ -21,6 +21,7 @@ export interface CollectionNote {
   path: string
   title: string
   mtime: number
+  cover: string | null
   tags: string[]
 }
 
@@ -104,7 +105,7 @@ export function deleteCollection(db: DB, id: number): void {
 
 export function collectionNotes(db: DB, folder: string): CollectionNote[] {
   const notes = db
-    .prepare("SELECT path, title, mtime FROM notes_index WHERE path LIKE ? || '/%' ORDER BY mtime DESC")
+    .prepare("SELECT path, title, mtime, cover FROM notes_index WHERE path LIKE ? || '/%' ORDER BY mtime DESC")
     .all(folder) as Omit<CollectionNote, 'tags'>[]
   const tagRows = db
     .prepare("SELECT path, tag FROM note_tags WHERE path LIKE ? || '/%' ORDER BY tag")

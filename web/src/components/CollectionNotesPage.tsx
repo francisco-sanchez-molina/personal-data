@@ -11,6 +11,41 @@ function relativeDate(mtime: number): string {
   return new Date(mtime).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function NoteCard({ note }: { note: CollectionNote }) {
+  const [imgError, setImgError] = useState(false)
+  const showCover = note.cover && !imgError
+
+  return (
+    <Link
+      to={`/notes/${note.path}`}
+      className="group flex flex-col overflow-hidden rounded-xl border border-zinc-800 hover:border-zinc-600"
+    >
+      <div className="aspect-video w-full overflow-hidden bg-zinc-900">
+        {showCover ? (
+          <img
+            src={note.cover!}
+            alt=""
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-3xl text-zinc-700">📝</div>
+        )}
+      </div>
+      <div className="p-2.5">
+        <p className="truncate text-sm font-medium">{note.title}</p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="min-w-0 truncate text-xs text-zinc-500">
+            {note.tags.length > 0 ? note.tags.map((t) => `#${t}`).join(' ') : ' '}
+          </p>
+          <p className="shrink-0 text-xs text-zinc-600">{relativeDate(note.mtime)}</p>
+        </div>
+      </div>
+    </Link>
+  )
+}
+
 export default function CollectionNotesPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -70,7 +105,7 @@ export default function CollectionNotesPage() {
   if (!collection) return <div className="p-4 text-sm text-zinc-600">Cargando…</div>
 
   return (
-    <div className="mx-auto max-w-2xl overflow-auto p-4">
+    <div className="mx-auto max-w-4xl overflow-auto p-4">
       <div className="mb-1 flex items-center gap-2">
         <Link to="/collections" className="rounded px-1.5 py-1 text-zinc-500 hover:bg-zinc-900">
           ‹
@@ -133,26 +168,13 @@ export default function CollectionNotesPage() {
           Aún no hay notas. Crea la primera con «+ Nueva»
           {collection.template ? ' y se rellenará con tu plantilla.' : '.'}
         </div>
+      ) : visible.length === 0 ? (
+        <p className="py-4 text-center text-sm text-zinc-600">Nada coincide con «{filter}»</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {visible.map((n) => (
-            <Link
-              key={n.path}
-              to={`/notes/${n.path}`}
-              className="block rounded-xl border border-zinc-800 px-3 py-2.5 hover:border-zinc-600"
-            >
-              <span className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 truncate text-sm font-medium">{n.title}</span>
-                <span className="shrink-0 text-xs text-zinc-600">{relativeDate(n.mtime)}</span>
-              </span>
-              {n.tags.length > 0 && (
-                <span className="mt-1 block text-xs text-zinc-500">{n.tags.map((t) => `#${t}`).join('  ')}</span>
-              )}
-            </Link>
+            <NoteCard key={n.path} note={n} />
           ))}
-          {visible.length === 0 && (
-            <p className="py-4 text-center text-sm text-zinc-600">Nada coincide con «{filter}»</p>
-          )}
         </div>
       )}
     </div>

@@ -11,7 +11,8 @@ export function openDb(dbPath: string): DB {
       path TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       mtime INTEGER NOT NULL,
-      size INTEGER NOT NULL
+      size INTEGER NOT NULL,
+      cover TEXT
     );
 
     CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
@@ -111,6 +112,15 @@ export function openDb(dbPath: string): DB {
       db.exec("ALTER TABLE attachments ADD COLUMN context TEXT NOT NULL DEFAULT 'journal'")
     }
     db.pragma('user_version = 4')
+  }
+  // v5: portada de nota (primera imagen embebida) → forzar reindexado para poblarla
+  if (version < 5) {
+    const cols = (db.prepare('PRAGMA table_info(notes_index)').all() as { name: string }[]).map((c) => c.name)
+    if (!cols.includes('cover')) {
+      db.exec('ALTER TABLE notes_index ADD COLUMN cover TEXT')
+    }
+    db.exec('DELETE FROM notes_index')
+    db.pragma('user_version = 5')
   }
 
   return db

@@ -38,6 +38,12 @@ export function extractTags(content: string): string[] {
   return [...tags].sort()
 }
 
+/** Primera imagen embebida en la nota (portada para tarjetas), o null si no tiene. */
+export function extractCoverImage(content: string): string | null {
+  const m = /!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/.exec(content)
+  return m ? m[1] : null
+}
+
 export function tagsOf(db: DB, relPath: string): string[] {
   return (db.prepare('SELECT tag FROM note_tags WHERE path = ? ORDER BY tag').all(relPath) as { tag: string }[]).map(
     (r) => r.tag
@@ -53,12 +59,13 @@ export function listTags(db: DB): { tag: string; count: number }[] {
 export function indexNote(db: DB, relPath: string, content: string, mtime: number, size: number): void {
   const title = titleOf(relPath, content)
   const tags = extractTags(content)
+  const cover = extractCoverImage(content)
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM notes_fts WHERE path = ?').run(relPath)
     db.prepare('INSERT INTO notes_fts (path, title, body) VALUES (?, ?, ?)').run(relPath, title, content)
     db.prepare(
-      'INSERT INTO notes_index (path, title, mtime, size) VALUES (?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET title=excluded.title, mtime=excluded.mtime, size=excluded.size'
-    ).run(relPath, title, mtime, size)
+      'INSERT INTO notes_index (path, title, mtime, size, cover) VALUES (?, ?, ?, ?, ?) ON CONFLICT(path) DO UPDATE SET title=excluded.title, mtime=excluded.mtime, size=excluded.size, cover=excluded.cover'
+    ).run(relPath, title, mtime, size, cover)
     db.prepare('DELETE FROM note_tags WHERE path = ?').run(relPath)
     const ins = db.prepare('INSERT INTO note_tags (path, tag) VALUES (?, ?)')
     for (const tag of tags) ins.run(relPath, tag)

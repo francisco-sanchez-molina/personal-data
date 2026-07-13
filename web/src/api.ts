@@ -82,6 +82,7 @@ export interface CollectionNote {
   path: string
   title: string
   mtime: number
+  cover: string | null
   tags: string[]
 }
 

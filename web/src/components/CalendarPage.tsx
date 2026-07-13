@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import {
   api,
@@ -72,6 +72,8 @@ export default function CalendarPage() {
   const [upcoming, setUpcoming] = useState<VEvent[]>([])
   const [journalDays, setJournalDays] = useState<Map<string, MonthDay>>(new Map())
   const [dayJournal, setDayJournal] = useState<JournalDay | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInput = useRef<HTMLInputElement>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -138,6 +140,20 @@ export default function CalendarPage() {
     setEditingId(ev.id)
     setError(null)
     setShowForm(true)
+  }
+
+  const uploadPhotos = async (files: File[]) => {
+    if (files.length === 0) return
+    setUploading(true)
+    try {
+      await api.uploadAttachments(selected, files)
+      setDayJournal(await api.journal(selected))
+      refresh() // actualiza los puntos del calendario
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error subiendo')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const toggleAlarm = (min: number) => {
@@ -347,8 +363,27 @@ export default function CalendarPage() {
 
       {/* Día seleccionado */}
       <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-medium capitalize">{formatDateEs(selected)}</h2>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-sm font-medium capitalize">{formatDateEs(selected)}</h2>
+          <button
+            onClick={() => fileInput.current?.click()}
+            disabled={uploading}
+            className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm text-sky-300 hover:bg-zinc-700 disabled:opacity-50"
+            title="Subir fotos al diario de este día"
+          >
+            {uploading ? 'Subiendo…' : '📷 Foto'}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              uploadPhotos([...(e.target.files ?? [])])
+              e.target.value = ''
+            }}
+          />
           <button onClick={openCreate} className="rounded-lg bg-zinc-800 px-3 py-1.5 text-sm text-amber-300 hover:bg-zinc-700">
             + Evento
           </button>
